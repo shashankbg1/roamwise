@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { deleteTrip, getTrip, listTrips, planTrip } from './api/client'
+import { deleteTrip, getTrip, listTrips, planTrip, refineTrip } from './api/client'
 import type { AgentEvent, Itinerary, TripRequest, TripSummary } from './api/types'
 import AgentFeed from './components/AgentFeed'
 import ItineraryView from './components/ItineraryView'
+import RefineBox from './components/RefineBox'
 import SavedTrips from './components/SavedTrips'
 import TripForm from './components/TripForm'
 
@@ -74,6 +75,12 @@ export default function App() {
     void runJob((onEvent, signal) => planTrip(request, onEvent, signal))
   }
 
+  const refine = (message: string) => {
+    if (!itinerary) return
+    const tripId = itinerary.id
+    void runJob((onEvent, signal) => refineTrip(tripId, message, onEvent, signal))
+  }
+
   const open = async (id: string) => {
     setError(null)
     setEvents([])
@@ -127,7 +134,14 @@ export default function App() {
           )}
           <AgentFeed events={events} running={running} />
           {itinerary ? (
-            <ItineraryView itinerary={itinerary} />
+            <>
+              <RefineBox
+                busy={running}
+                usingMock={itinerary.llm_provider === 'mock'}
+                onRefine={refine}
+              />
+              <ItineraryView itinerary={itinerary} />
+            </>
           ) : (
             !running && (
               <p className="rounded-lg border border-dashed border-slate-300 px-4 py-10 text-center text-sm text-slate-500">
